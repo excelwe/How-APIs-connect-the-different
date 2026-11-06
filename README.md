@@ -1,0 +1,28 @@
+<p class="demoTitle">&nbsp; &nbsp;&nbsp;</p>
+<h1><strong>How APIs connect the different systems behind iGaming platforms</strong></h1>
+<p>A player taps spin. The game runs on a server that belongs to a studio, not to the casino, so the studio's server asks the casino's wallet to take the stake. The wallet takes it, and the reply never arrives. Did the money move? That question sits at the center of how an iGaming platform is built. What looks like one app to the player is a set of separate systems, often run by different companies, and APIs are what hold them together.</p>
+<h2><strong><strong>&nbsp;</strong></strong></h2>
+<h2><strong><strong>Why one platform is really several</strong></strong></h2>
+<p>Behind the lobby there is usually an account and wallet service, a set of game studios, one or more payment processors, identity and location checks, and the analytics that watch all of it. Each ships on its own schedule and fails in its own way.</p>
+<p>&nbsp;</p>
+<p>Some of those services sit inside the operator's own infrastructure and some don't. Games in particular are often hosted by the studio that built them, so the game loads from the studio while every stake and win still has to be settled by the casino's wallet.</p>
+<h2><strong><strong>Where the money crosses the wire</strong></strong></h2>
+<p>A common pattern for connecting games to a casino keeps a single wallet for each player, wherever the game is hosted. The balance stays with the operator, and the game server calls the operator's wallet for each step of a round: check the balance, debit the stake, credit any win, and roll back a transaction that shouldn't stand.</p>
+<p>&nbsp;</p>
+<p>That makes the wallet API one of the busiest and least forgiving endpoints in the system, and the money in it usually comes in through an outside payment processor first. One of the largest groups - SuperGroup, the parent company of <a href="https://betway.com/gb/en/casino"><u>Betway</u></a>, said in its 2025 annual report filed with the SEC, that it relies on third-party payment processors for deposits and withdrawals. It also uses outside providers to check the identity and location of its users, and its risk factors concede there is no guarantee those checks will always perform adequately. Each of those services is another network call that can fail halfway through. The wallet call from the opening is the one where a half-finished request costs real money.</p>
+<h2><strong><strong>&nbsp;</strong></strong></h2>
+<h2><strong><strong>Retries, idempotency and rollbacks</strong></strong></h2>
+<p>One aggregator's published wallet specification handles the problem by treating bets and wins differently. If a bet request fails or times out, the game provider rolls the bet back. If a win request fails, the provider is required to retry it. Both rules depend on every request carrying a unique transaction ID, and the wallet is required never to process the same transaction twice.</p>
+<p>It's the same idea Stripe uses for payments. Its API supports idempotency so that clients can safely retry a request "without accidentally performing the same operation twice", using a key sent in an Idempotency-Key header, with V4 UUIDs suggested. In a casino wallet, getting this wrong means either charging a player twice or paying a win twice, and neither is a bug you want to find in production.</p>
+<h2><strong><strong>The developer's side of the contract</strong></strong></h2>
+<p>Integrations last longer when changes are predictable. GitHub moved its REST API to <a href="https://github.blog/developer-skills/github/to-infinity-and-beyond-enabling-the-future-of-githubs-rest-api-with-api-versioning/"><u>date-based versions</u></a>&nbsp;in November 2022, chosen with an X-GitHub-Api-Version header, and the first version with breaking changes, 2026-03-10, didn't arrive until March 2026. The older version stays supported for 24 months after a newer one is released, which gives integrators a long, known runway.</p>
+<p>&nbsp;</p>
+<p>Testing has to cover the failures, not just the happy path. A staging wallet that drops the reply to a bet on purpose is the quickest way to find out whether the rollback actually fires, and the API documentation should say what happens in that case before anyone has to guess.</p>
+<p>Callbacks need care in the other direction. When you set a webhook secret, GitHub signs each delivery with an HMAC-SHA256 digest in the X-Hub-Signature-256 header and tells developers to "never use a plain == operator" when checking it, because a constant-time comparison avoids leaking timing information. A deposit callback from a payment processor should pass that kind of check before it credits anyone's balance.</p>
+<p>&nbsp;</p>
+<p><a href="https://www.rfc-editor.org/rfc/rfc6585"><u>RFC 6585</u></a>&nbsp;defines 429 Too Many Requests and lets a server add a Retry-After header, so a client that backs off when told to is easier for a busy wallet or verification service to live with.</p>
+<p>Logging every call with its transaction ID makes it possible to trace a disputed round across the studio's, the aggregator's and the operator's systems, and to tell whether a stuck spin was a studio problem, a wallet problem or a network blip in between. The specification mentioned above requires transaction IDs to be kept for at least four months for exactly this reason.</p>
+<h2><strong><strong>What the player sees</strong></strong></h2>
+<p>A player who taps spin sees one app. Keeping it that way means agreeing transaction IDs and retry rules with every studio and payment provider before launch, and still reading the logs when a round goes missing.</p>
+<p>&nbsp;</p>
+<!-- Comments are visible in the HTML source only -->
